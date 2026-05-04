@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register</title>
+</head>
+<body>
+
+<h2>Register</h2>
+
+<form action="/register" method="post" onsubmit="return validateForm()">
+
+    <input type="text" name="username" required>
+    <input type="password" name="password" required>
+
+    <input type="hidden" name="latitude" id="lat">
+    <input type="hidden" name="longitude" id="lon">
+
+    <button type="button" onclick="openMap()">Choose Location</button>
+
+    <p id="status" style="color:green;"></p>
+    <p id="error" style="color:red;"></p>
+
+    <button type="submit">Register</button>
+</form>
+
+<script>
+function openMap() {
+    window.open("/map", "Map", "width=800,height=600");
+}
+
+function validateForm() {
+    if (!document.getElementById("lat").value) {
+        document.getElementById("error").innerText = "Please select your location!";
+        return false;
+    }
+    return true;
+}
+
+// Receive data from map
+window.addEventListener("message", function(event) {
+
+    console.log("Received data:", event.data);  // DEBUG
+
+    if (event.data.lat && event.data.lon) {
+        document.getElementById("lat").value = event.data.lat;
+        document.getElementById("lon").value = event.data.lon;
+
+        document.getElementById("status").innerText =
+            "Location updated successfully!";
+    }
+});
+</script>
+
+</body>
+</html>

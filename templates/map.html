@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Select Location</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+    <style>
+        #map { height: 500px; }
+    </style>
+</head>
+<body>
+
+<h3>Select Your Location</h3>
+
+<input type="text" id="search" placeholder="Search location">
+<button onclick="searchLocation()">Search</button>
+
+<div id="map"></div>
+
+<button onclick="confirmLocation()">Confirm Location</button>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+let map;
+let marker;
+
+function confirmLocation() {
+    let pos = marker.getLatLng();
+
+    if (window.opener) {
+        window.opener.postMessage({
+            lat: pos.lat,
+            lon: pos.lng
+        }, "*");
+
+        window.close();
+    } else {
+        alert("Parent window not found!");
+    }
+}
+
+function initMap(lat, lon) {
+    map = L.map('map').setView([lat, lon], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // 🔴 IMPORTANT: Place marker at user location
+    marker = L.marker([lat, lon]).addTo(map)
+        .bindPopup("Your current location")
+        .openPopup();
+
+    // Allow user to change location
+    map.on('click', function(e) {
+        marker.setLatLng(e.latlng);
+    });
+}
+
+// ✅ Get device location FIRST, then initialize map
+navigator.geolocation.getCurrentPosition(
+    function(position) {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        initMap(lat, lon);
+    },
+    function(error) {
+        console.log("Location access denied, using fallback");
+
+        // fallback location (example: Bangalore)
+        initMap(12.9716, 77.5946);
+    },
+    {
+        enableHighAccuracy: true
+    }
+);
+</script>
+
+</body>
+</html>
