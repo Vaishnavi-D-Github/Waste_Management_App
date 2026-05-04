@@ -1,19 +1,193 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waste Management | Login</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f3f7f6;
+            --surface: #ffffff;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --primary: #0f766e;
+            --primary-strong: #115e59;
+            --danger: #b91c1c;
+            --success: #166534;
+            --border: #d1d5db;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 90% 10%, #d1fae5 0%, transparent 40%),
+                radial-gradient(circle at 10% 90%, #bae6fd 0%, transparent 35%),
+                var(--bg);
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        .card {
+            width: min(420px, 100%);
+            background: var(--surface);
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            box-shadow: 0 16px 40px rgba(15, 118, 110, 0.12);
+            padding: 28px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 1.7rem;
+        }
+
+        .subtitle {
+            margin: 0 0 24px;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 13px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 14px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
+        }
+
+        button {
+            width: 100%;
+            border: none;
+            background: var(--primary);
+            color: #ffffff;
+            font-weight: 600;
+            padding: 12px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.2s ease;
+        }
+
+        button:hover {
+            background: var(--primary-strong);
+        }
+
+        .message {
+            min-height: 24px;
+            margin: 10px 0 0;
+            font-size: 0.9rem;
+        }
+
+        .message.error {
+            color: var(--danger);
+        }
+
+        .message.success {
+            color: var(--success);
+        }
+
+        .footer {
+            margin-top: 16px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
 </head>
 <body>
+<main class="card">
+    <h1>Welcome back</h1>
+    <p class="subtitle">Sign in to continue to your waste management dashboard.</p>
 
-<h2>Login</h2>
+    <form id="loginForm" action="/" method="post" novalidate>
+        <label for="username">Username</label>
+        <input id="username" type="text" name="username" placeholder="Enter username" required>
 
-<form action="/" method="post">
-    <input type="text" name="username" placeholder="Username">
-    <input type="password" name="password" placeholder="Password">
+        <label for="password">Password</label>
+        <input id="password" type="password" name="password" placeholder="Enter password" required>
 
-    <button type="submit">Login</button>
-    <a href = "/register"> Register</a>
-</form>
+        <button id="submitBtn" type="submit">Sign In</button>
+        <p id="message" class="message" aria-live="polite"></p>
+    </form>
 
+    <p class="footer">
+        New here? <a href="/register">Create account</a>
+    </p>
+</main>
+
+<script>
+const loginForm = document.getElementById("loginForm");
+const submitBtn = document.getElementById("submitBtn");
+const messageEl = document.getElementById("message");
+
+function setMessage(text, type) {
+    messageEl.textContent = text;
+    messageEl.className = "message " + type;
+}
+
+loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const formData = new FormData(loginForm);
+
+    if (!formData.get("username") || !formData.get("password")) {
+        setMessage("Please enter both username and password.", "error");
+        return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Signing in...";
+    setMessage("", "");
+
+    try {
+        const response = await fetch("/", {
+            method: "POST",
+            body: formData
+        });
+        const data = await response.json();
+
+        if (!response.ok || data.error) {
+            setMessage(data.error || "Login failed. Please try again.", "error");
+            return;
+        }
+
+        setMessage(data.message || "Login successful.", "success");
+    } catch (error) {
+        setMessage("Network error. Please check your connection.", "error");
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Sign In";
+    }
+});
+</script>
 </body>
 </html>

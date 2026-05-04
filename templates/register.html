@@ -1,55 +1,279 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Register</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waste Management | Register</title>
+    <style>
+        :root {
+            --bg: #ecfdf5;
+            --surface: #ffffff;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --primary: #047857;
+            --primary-strong: #065f46;
+            --danger: #b91c1c;
+            --success: #166534;
+            --border: #d1d5db;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text);
+            background:
+                linear-gradient(120deg, rgba(16, 185, 129, 0.14), transparent 50%),
+                linear-gradient(300deg, rgba(59, 130, 246, 0.12), transparent 50%),
+                var(--bg);
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        .card {
+            width: min(560px, 100%);
+            background: var(--surface);
+            border-radius: 16px;
+            border: 1px solid #dbe4e6;
+            box-shadow: 0 18px 40px rgba(4, 120, 87, 0.14);
+            padding: 30px;
+        }
+
+        h1 {
+            margin: 0 0 6px;
+            font-size: 1.7rem;
+        }
+
+        .subtitle {
+            margin: 0 0 24px;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .field-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .field.full {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        input {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 0.95rem;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(4, 120, 87, 0.12);
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            border: none;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: transform 0.05s ease, background-color 0.2s ease;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .secondary {
+            background: #e5e7eb;
+            color: #1f2937;
+        }
+
+        .secondary:hover {
+            background: #d1d5db;
+        }
+
+        .primary {
+            background: var(--primary);
+            color: #ffffff;
+            flex: 1;
+        }
+
+        .primary:hover {
+            background: var(--primary-strong);
+        }
+
+        .message {
+            min-height: 24px;
+            margin: 12px 0 0;
+            font-size: 0.9rem;
+        }
+
+        .success {
+            color: var(--success);
+        }
+
+        .error {
+            color: var(--danger);
+        }
+
+        .coords {
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin-top: 8px;
+        }
+
+        .footer {
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .footer a {
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        @media (max-width: 640px) {
+            .field-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
+<main class="card">
+    <h1>Create your account</h1>
+    <p class="subtitle">Register and pin your location for waste collection services.</p>
 
-<h2>Register</h2>
+    <form id="registerForm" action="/register" method="post" novalidate>
+        <div class="field-grid">
+            <div class="field">
+                <label for="username">Username</label>
+                <input id="username" type="text" name="username" placeholder="Choose username" required>
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input id="password" type="password" name="password" placeholder="Choose password" required>
+            </div>
+            <div class="field full">
+                <label>Location</label>
+                <input type="hidden" name="latitude" id="lat">
+                <input type="hidden" name="longitude" id="lon">
+                <div class="actions">
+                    <button class="secondary" type="button" id="openMapBtn">Choose on map</button>
+                    <button class="primary" type="submit" id="submitBtn">Register</button>
+                </div>
+                <p id="coords" class="coords">No location selected yet.</p>
+                <p id="message" class="message" aria-live="polite"></p>
+            </div>
+        </div>
+    </form>
 
-<form action="/register" method="post" onsubmit="return validateForm()">
-
-    <input type="text" name="username" required>
-    <input type="password" name="password" required>
-
-    <input type="hidden" name="latitude" id="lat">
-    <input type="hidden" name="longitude" id="lon">
-
-    <button type="button" onclick="openMap()">Choose Location</button>
-
-    <p id="status" style="color:green;"></p>
-    <p id="error" style="color:red;"></p>
-
-    <button type="submit">Register</button>
-</form>
+    <p class="footer">Already have an account? <a href="/">Sign in</a></p>
+</main>
 
 <script>
+const registerForm = document.getElementById("registerForm");
+const openMapBtn = document.getElementById("openMapBtn");
+const submitBtn = document.getElementById("submitBtn");
+const messageEl = document.getElementById("message");
+const coordsEl = document.getElementById("coords");
+const latEl = document.getElementById("lat");
+const lonEl = document.getElementById("lon");
+
+function setMessage(text, type) {
+    messageEl.textContent = text;
+    messageEl.className = "message " + (type || "");
+}
+
 function openMap() {
-    window.open("/map", "Map", "width=800,height=600");
+    window.open("/map", "Map", "width=950,height=650,resizable=yes");
 }
 
-function validateForm() {
-    if (!document.getElementById("lat").value) {
-        document.getElementById("error").innerText = "Please select your location!";
-        return false;
+openMapBtn.addEventListener("click", openMap);
+
+registerForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const formData = new FormData(registerForm);
+    const username = String(formData.get("username") || "").trim();
+    const password = String(formData.get("password") || "");
+
+    if (!username || !password) {
+        setMessage("Username and password are required.", "error");
+        return;
     }
-    return true;
-}
 
-// Receive data from map
-window.addEventListener("message", function(event) {
+    if (!latEl.value || !lonEl.value) {
+        setMessage("Please choose your location from the map.", "error");
+        return;
+    }
 
-    console.log("Received data:", event.data);  // DEBUG
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Registering...";
+    setMessage("", "");
 
-    if (event.data.lat && event.data.lon) {
-        document.getElementById("lat").value = event.data.lat;
-        document.getElementById("lon").value = event.data.lon;
+    try {
+        const response = await fetch("/register", {
+            method: "POST",
+            body: formData
+        });
+        const data = await response.json();
 
-        document.getElementById("status").innerText =
-            "Location updated successfully!";
+        if (!response.ok || data.error) {
+            setMessage(data.error || "Registration failed. Try again.", "error");
+            return;
+        }
+
+        setMessage(data.message || "Registered successfully. You can now sign in.", "success");
+    } catch (error) {
+        setMessage("Network error. Please try again.", "error");
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Register";
+    }
+});
+
+window.addEventListener("message", (event) => {
+    if (event.origin !== window.location.origin) {
+        return;
+    }
+
+    const { lat, lon } = event.data || {};
+    if (typeof lat === "number" && typeof lon === "number") {
+        latEl.value = lat.toFixed(6);
+        lonEl.value = lon.toFixed(6);
+        coordsEl.textContent = "Selected coordinates: " + latEl.value + ", " + lonEl.value;
+        setMessage("Location selected successfully.", "success");
     }
 });
 </script>
-
 </body>
 </html>
