@@ -1,19 +1,13 @@
-import json
 from pathlib import Path
 
 import pandas as pd
 
-from .ml_engine import predict_cluster
-
 _ROOT = Path(__file__).resolve().parents[2]
 _MINED_PATH = _ROOT / "dataset" / "apriori_rules_mined.csv"
 _LEGACY_PATH = _ROOT / "dataset" / "rules.csv"
-_ROUTES_PATH = _ROOT / "cluster_routes.json"
 
 _mined_rules: pd.DataFrame | None = None
 _legacy_rules: pd.DataFrame | None = None
-_cluster_routes_loaded: bool = False
-_cluster_routes: dict[str, str] | None = None
 
 
 def _load_mined() -> pd.DataFrame | None:
@@ -37,21 +31,6 @@ def _load_legacy() -> pd.DataFrame | None:
         return None
     _legacy_rules = pd.read_csv(_LEGACY_PATH)
     return _legacy_rules
-
-
-def _load_cluster_routes() -> dict[str, str]:
-    global _cluster_routes_loaded, _cluster_routes
-    if _cluster_routes_loaded:
-        return _cluster_routes or {}
-    _cluster_routes_loaded = True
-    if not _ROUTES_PATH.exists():
-        _cluster_routes = {}
-        return {}
-    try:
-        _cluster_routes = json.loads(_ROUTES_PATH.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        _cluster_routes = {}
-    return _cluster_routes or {}
 
 
 def _clamp_int(v: int, lo: int, hi: int) -> int:
@@ -87,27 +66,20 @@ def _parse_itemset(s: str) -> set[str]:
     return {x.strip() for x in str(s).split("|") if x.strip()}
 
 
-def _route_from_outcome(consequent: str, waste: int) -> str:
+def _action_from_consequent(cons: str, waste: int) -> str | None:
+    s = str(cons).strip()
+    if s in {"Act_WAIT", "Act_MONITOR", "Act_DISPOSE"}:
+        return s[4:]
     wi = _clamp_int(waste, 0, 2)
-    if "Out_Picked" in consequent:
+    if "Out_Picked" in s:
         return "WAIT"
-    if "Out_NotPicked" in consequent:
+    if "Out_NotPicked" in s:
         if wi >= 2:
             return "DISPOSE"
         if wi == 1:
             return "MONITOR"
         return "WAIT"
-    return "WAIT"
-
-
-def _cluster_id_from_consequent(cons: str) -> str | None:
-    s = str(cons).strip()
-    if "|" in s:
-        return None
-    if not s.startswith("K_"):
-        return None
-    tail = s[2:]
-    return tail if tail.isdigit() else None
+    return None
 
 
 def _decision_from_mined(waste: int, delay: int, density: int, area: int) -> str | None:
@@ -116,43 +88,33 @@ def _decision_from_mined(waste: int, delay: int, density: int, area: int) -> str
         return None
 
     user_items = _user_itemset(waste, delay, density, area)
-    routes = _load_cluster_routes()
-
-    best_cluster_conf = -1.0
-    best_cluster_row = None
-    best_out_conf = -1.0
-    best_out_row = None
+    # Prefer more specific matching rules first (larger antecedents),
+    # then break ties with stronger association (higher lift) and confidence.
+    best_rule_size = -1
+    best_lift = -1.0
+    best_conf = -1.0
+    best_action = None
 
     for _, row in df.iterrows():
         ants = _parse_itemset(row["antecedents"])
         if not ants or not ants <= user_items:
             continue
         conf = float(row.get("confidence", 0.0))
-        cons = str(row["consequents"])
-        cid = _cluster_id_from_consequent(cons)
-        if cid is not None:
-            if routes and cid not in routes:
-                continue
-            if conf > best_cluster_conf:
-                best_cluster_conf = conf
-                best_cluster_row = row
-        elif "Out_" in cons:
-            if conf > best_out_conf:
-                best_out_conf = conf
-                best_out_row = row
+        lift = float(row.get("lift", 0.0))
+        action = _action_from_consequent(str(row["consequents"]), waste)
+        if action is None:
+            continue
+        rule_size = len(ants)
+        if rule_size > best_rule_size or (
+            rule_size == best_rule_size
+            and (lift > best_lift or (lift == best_lift and conf > best_conf))
+        ):
+            best_rule_size = rule_size
+            best_lift = lift
+            best_conf = conf
+            best_action = action
 
-    if best_cluster_row is not None:
-        cid = _cluster_id_from_consequent(str(best_cluster_row["consequents"]))
-        if cid is not None:
-            if routes:
-                action = routes.get(cid)
-                if action:
-                    return action
-
-    if best_out_row is not None:
-        return _route_from_outcome(str(best_out_row["consequents"]), waste)
-
-    return None
+    return best_action
 
 
 def _decision_from_legacy(waste: int, density: int) -> str:
@@ -183,15 +145,6 @@ def apriori_decision(waste: int, delay: int, density: int, area: int) -> str:
     mined = _decision_from_mined(waste, delay, density, area)
     if mined is not None:
         return mined
-    routes = _load_cluster_routes()
-    if routes:
-        try:
-            cid = predict_cluster(waste, delay, density, area)
-            action = routes.get(str(cid))
-            if action:
-                return action
-        except (FileNotFoundError, ValueError):
-            pass
     return _decision_from_legacy(waste, density)
 
 

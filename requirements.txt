@@ -7,5 +7,4 @@ jinja2
 python-multipart
 pymysql
 pandas
-scikit-learn
 mlxtend
