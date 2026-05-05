@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Form
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from .. import models, database, auth
 from fastapi.responses import HTMLResponse
@@ -39,7 +40,11 @@ def register(
     )
 
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        return {"error": "Username already taken. Choose another."}
 
     return {"message": "User registered successfully"}
 

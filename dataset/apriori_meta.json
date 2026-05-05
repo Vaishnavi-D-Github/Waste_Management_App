@@ -1,0 +1,8 @@
+{
+  "n_transactions": 14400,
+  "min_support_used": 0.12,
+  "n_rules_exported": 12,
+  "rules_file": "dataset\\apriori_rules_mined.csv",
+  "cluster_item_prefix": "K_",
+  "n_clusters_in_model": 8
+}

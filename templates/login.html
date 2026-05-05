@@ -181,6 +181,8 @@ loginForm.addEventListener("submit", async (event) => {
         }
 
         setMessage(data.message || "Login successful.", "success");
+        window.location.href = "/dashboard";
+        return;
     } catch (error) {
         setMessage("Network error. Please check your connection.", "error");
     } finally {
