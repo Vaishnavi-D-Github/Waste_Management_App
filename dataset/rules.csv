@@ -1,7 +1,0 @@
-antecedents,consequents
-"W:Low|D:High","Dispose"
-"W:High|D:Medium","Dispose"
-"W:High|D:High","Dispose"
-"W:Medium|D:High","Dispose"
-"W:Low|D:Medium","Monitor"
-"W:Medium|D:Low","Monitor"

@@ -1,10 +1,7 @@
-from pathlib import Path
-
 import pandas as pd
+from sqlalchemy import text
 
-_ROOT = Path(__file__).resolve().parents[2]
-_MINED_PATH = _ROOT / "dataset" / "apriori_rules_mined.csv"
-_LEGACY_PATH = _ROOT / "dataset" / "rules.csv"
+from ..database import SessionLocal
 
 _mined_rules: pd.DataFrame | None = None
 _legacy_rules: pd.DataFrame | None = None
@@ -14,9 +11,25 @@ def _load_mined() -> pd.DataFrame | None:
     global _mined_rules
     if _mined_rules is not None:
         return _mined_rules
-    if not _MINED_PATH.exists():
+
+    with SessionLocal() as db:
+        rows = db.execute(
+            text(
+                """
+                SELECT antecedents, consequents, support, confidence, lift
+                FROM apriori_rules
+                ORDER BY lift DESC, confidence DESC
+                """
+            )
+        ).fetchall()
+
+    if not rows:
         return None
-    df = pd.read_csv(_MINED_PATH)
+
+    df = pd.DataFrame(
+        rows,
+        columns=["antecedents", "consequents", "support", "confidence", "lift"],
+    )
     if df.empty or "antecedents" not in df.columns:
         return None
     _mined_rules = df
@@ -27,9 +40,21 @@ def _load_legacy() -> pd.DataFrame | None:
     global _legacy_rules
     if _legacy_rules is not None:
         return _legacy_rules
-    if not _LEGACY_PATH.exists():
+
+    with SessionLocal() as db:
+        rows = db.execute(
+            text(
+                """
+                SELECT antecedents, consequents
+                FROM legacy_rules
+                """
+            )
+        ).fetchall()
+
+    if not rows:
         return None
-    _legacy_rules = pd.read_csv(_LEGACY_PATH)
+
+    _legacy_rules = pd.DataFrame(rows, columns=["antecedents", "consequents"])
     return _legacy_rules
 
 

@@ -2,6 +2,6 @@
   "n_transactions": 14400,
   "min_support_used": 0.12,
   "n_rules_exported": 27,
-  "rules_file": "dataset\\apriori_rules_mined.csv",
+  "rules_table": "apriori_rules",
   "action_item_prefix": "Act_"
 }

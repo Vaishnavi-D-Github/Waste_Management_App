@@ -4,26 +4,66 @@ Mine association rules from merged waste + location data (Apriori via mlxtend).
 Each transaction includes the feature items plus a direct routing action label:
 Act_WAIT, Act_MONITOR, or Act_DISPOSE.
 
-Writes dataset/apriori_rules_mined.csv used by app.services.apriori_engine.
+Writes mined rules into MySQL table `apriori_rules`.
 """
 from __future__ import annotations
 
 import json
 from pathlib import Path
+import sys
 
 import pandas as pd
 from mlxtend.frequent_patterns import apriori, association_rules
 from mlxtend.preprocessing import TransactionEncoder
+from sqlalchemy import text
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from app.database import SessionLocal
+
 DATASET = ROOT / "dataset"
-OUTPUT_CSV = DATASET / "apriori_rules_mined.csv"
 META_JSON = DATASET / "apriori_meta.json"
 
 
 def load_merged() -> pd.DataFrame:
-    waste = pd.read_csv(DATASET / "waste_data_realistic.csv")
-    loc = pd.read_csv(DATASET / "location_data.csv")
+    with SessionLocal() as db:
+        waste_rows = db.execute(
+            text(
+                """
+                SELECT
+                    location_id AS Location_ID,
+                    date AS Date,
+                    waste_level AS Waste_Level,
+                    pickup_status AS Pickup_Status,
+                    delay_days AS Delay_Days
+                FROM waste_data
+                """
+            )
+        ).fetchall()
+        loc_rows = db.execute(
+            text(
+                """
+                SELECT
+                    location_id AS Location_ID,
+                    latitude AS Latitude,
+                    longitude AS Longitude,
+                    area_type AS Area_Type,
+                    population_density AS Population_Density
+                FROM location_data
+                """
+            )
+        ).fetchall()
+
+    waste = pd.DataFrame(
+        waste_rows,
+        columns=["Location_ID", "Date", "Waste_Level", "Pickup_Status", "Delay_Days"],
+    )
+    loc = pd.DataFrame(
+        loc_rows,
+        columns=["Location_ID", "Latitude", "Longitude", "Area_Type", "Population_Density"],
+    )
     return waste.merge(loc, on="Location_ID", how="left")
 
 
@@ -70,6 +110,29 @@ def _action_consequent_rule(row) -> bool:
     return str(c).startswith("Act_")
 
 
+def save_rules_to_db(out_df: pd.DataFrame) -> None:
+    with SessionLocal() as db:
+        db.execute(text("DELETE FROM apriori_rules"))
+        for _, row in out_df.iterrows():
+            db.execute(
+                text(
+                    """
+                    INSERT INTO apriori_rules
+                    (antecedents, consequents, support, confidence, lift)
+                    VALUES (:antecedents, :consequents, :support, :confidence, :lift)
+                    """
+                ),
+                {
+                    "antecedents": str(row["antecedents"]),
+                    "consequents": str(row["consequents"]),
+                    "support": float(row["support"]),
+                    "confidence": float(row["confidence"]),
+                    "lift": float(row["lift"]),
+                },
+            )
+        db.commit()
+
+
 def main() -> None:
     df = load_merged()
     transactions = [row_to_items(row) for _, row in df.iterrows()]
@@ -88,12 +151,14 @@ def main() -> None:
         freq = apriori(ohe, min_support=min_sup, use_colnames=True)
 
     if freq.empty:
-        OUTPUT_CSV.write_text("antecedents,consequents,support,confidence,lift\n", encoding="utf-8")
+        save_rules_to_db(
+            pd.DataFrame(columns=["antecedents", "consequents", "support", "confidence", "lift"])
+        )
         META_JSON.write_text(
             json.dumps({"n_transactions": n, "note": "no frequent itemsets at min_support"}, indent=2),
             encoding="utf-8",
         )
-        print("No frequent itemsets; wrote empty rules file.")
+        print("No frequent itemsets; cleared apriori_rules table.")
         return
 
     rules = association_rules(freq, metric="confidence", min_threshold=0.35)
@@ -120,18 +185,18 @@ def main() -> None:
         )
 
     out_df = pd.DataFrame(out_rows)
-    out_df.to_csv(OUTPUT_CSV, index=False)
+    save_rules_to_db(out_df)
 
     meta = {
         "n_transactions": n,
         "min_support_used": min_sup,
         "n_rules_exported": len(out_df),
-        "rules_file": str(OUTPUT_CSV.relative_to(ROOT)),
+        "rules_table": "apriori_rules",
         "action_item_prefix": "Act_",
     }
     META_JSON.write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
-    print("Saved:", OUTPUT_CSV)
+    print("Saved to table: apriori_rules")
     print("Meta:", META_JSON)
     print("Rules:", len(out_df))
 
