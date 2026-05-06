@@ -16,6 +16,42 @@ def get_db():
     finally:
         db.close()
 
+
+def _register_user(
+    username: str,
+    password: str,
+    latitude: float,
+    longitude: float,
+    db: Session,
+):
+    hashed = auth.hash_password(password)
+
+    user = models.User(
+        username=username,
+        password=hashed,
+        latitude=latitude,
+        longitude=longitude,
+    )
+
+    db.add(user)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        return {"error": "Username already taken. Choose another."}
+
+    return {"message": "User registered successfully"}
+
+
+def _login_user(username: str, password: str, db: Session):
+    user = db.query(models.User).filter(models.User.username == username).first()
+
+    if not user or not auth.verify_password(password, user.password):
+        return {"error": "Invalid credentials"}
+
+    return {"message": "Login successful"}
+
+
 # Register Page
 @router.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
@@ -28,25 +64,21 @@ def register(
     password: str = Form(...),
     latitude: float = Form(...),
     longitude: float = Form(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    hashed = auth.hash_password(password)
+    return _register_user(username, password, latitude, longitude, db)
 
-    user = models.User(
-        username=username,
-        password=hashed,
-        latitude=latitude,
-        longitude=longitude
-    )
 
-    db.add(user)
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        return {"error": "Username already taken. Choose another."}
+@router.post("/api/register")
+def api_register(
+    username: str = Form(...),
+    password: str = Form(...),
+    latitude: float = Form(...),
+    longitude: float = Form(...),
+    db: Session = Depends(get_db),
+):
+    return _register_user(username, password, latitude, longitude, db)
 
-    return {"message": "User registered successfully"}
 
 # Login Page
 @router.get("/", response_class=HTMLResponse)
@@ -58,14 +90,18 @@ def login_page(request: Request):
 def login(
     username: str = Form(...),
     password: str = Form(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    user = db.query(models.User).filter(models.User.username == username).first()
+    return _login_user(username, password, db)
 
-    if not user or not auth.verify_password(password, user.password):
-        return {"error": "Invalid credentials"}
 
-    return {"message": "Login successful"}
+@router.post("/api/login")
+def api_login(
+    username: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    return _login_user(username, password, db)
 
 @router.get("/map", response_class=HTMLResponse)
 def map_page(request: Request):

@@ -11,6 +11,7 @@ The system is now fully database-backed (MySQL) for both:
 ## Features
 
 - User registration and login
+- **React + Vite + TanStack Router** frontend in `frontend/` (calls the same FastAPI logic via JSON APIs)
 - Dashboard-based route decision
 - Three decision outputs:
   - `WAIT`
@@ -30,7 +31,8 @@ The system is now fully database-backed (MySQL) for both:
 - MySQL + PyMySQL
 - Pandas
 - mlxtend (Apriori + association rules)
-- Jinja2 templates
+- Jinja2 templates (legacy HTML pages under `templates/`, still served by FastAPI)
+- React 19, Vite 7, TanStack Router (SPA in `frontend/`)
 
 ---
 
@@ -58,6 +60,10 @@ Waste_Management_System/
 │   └── map.html
 ├── dataset/
 │   └── apriori_meta.json
+├── frontend/
+│   ├── package.json
+│   ├── vite.config.ts
+│   └── src/
 └── requirements.txt
 ```
 
@@ -158,7 +164,30 @@ Update it to your own MySQL username/password/host/database before running.
 uvicorn app.main:app --reload
 ```
 
-App will be available at: `http://127.0.0.1:8000`
+The API will be available at: `http://127.0.0.1:8000`
+
+### 5) Run the React frontend (recommended)
+
+The SPA expects these JSON endpoints (same business logic as the HTML forms):
+
+- `POST /api/login` — form fields: `username`, `password`
+- `POST /api/register` — form fields: `username`, `password`, `latitude`, `longitude`
+- `POST /api/predict` — form fields: `waste`, `delay`, `density`, `area`, `lat`, `lon`
+
+From the `frontend` folder:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+`npm run dev` starts **both** uvicorn (port `8000`) and Vite (default `5173`) via `concurrently`. Open the URL Vite prints (usually `http://127.0.0.1:5173`).
+
+- In development, Vite proxies `/api/*` to `http://127.0.0.1:8000`, so the browser calls same-origin `/api/...` and the FastAPI app handles them.
+- If you run Vite alone (`npm run dev:vite-only`), ensure the API is already on port `8000`, then copy `frontend/.env.example` to `frontend/.env` and set `VITE_API_BASE_URL=http://127.0.0.1:8000` so requests go directly to FastAPI. CORS is enabled for common local origins; extend with `CORS_ORIGINS` (comma-separated) if needed.
+
+You can still use the original Jinja pages at `http://127.0.0.1:8000/` (login), `/register`, `/dashboard`, etc.
 
 ---
 
@@ -185,6 +214,8 @@ This populates `apriori_rules`.
 
 ## Main Routes
 
+### HTML (Jinja2, served by FastAPI)
+
 - `GET /` -> Login page
 - `POST /` -> Login action
 - `GET /register` -> Register page
@@ -192,6 +223,12 @@ This populates `apriori_rules`.
 - `GET /dashboard` -> Waste routing dashboard
 - `POST /predict` -> Decision prediction + nearest disposal location (for `DISPOSE`)
 - `GET /map` -> Map page template
+
+### JSON API (used by the React frontend)
+
+- `POST /api/login` -> same login logic as `POST /`
+- `POST /api/register` -> same registration logic as `POST /register`
+- `POST /api/predict` -> same prediction logic as `POST /predict`; response body: `{"decision": "WAIT"|"MONITOR"|"DISPOSE", "bin_lat": number|null, "bin_lon": number|null}`
 
 ---
 
