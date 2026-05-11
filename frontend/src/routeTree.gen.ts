@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as MunicipalRouteImport } from './routes/municipal'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -18,6 +19,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MunicipalRoute = MunicipalRouteImport.update({
+  id: '/municipal',
+  path: '/municipal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MapRoute = MapRouteImport.update({
@@ -46,6 +52,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
+  '/municipal': typeof MunicipalRoute
   '/register': typeof RegisterRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
+  '/municipal': typeof MunicipalRoute
   '/register': typeof RegisterRoute
 }
 export interface FileRoutesById {
@@ -61,14 +69,22 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
+  '/municipal': typeof MunicipalRoute
   '/register': typeof RegisterRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/login' | '/map' | '/register'
+  fullPaths: '/' | '/dashboard' | '/login' | '/map' | '/municipal' | '/register'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login' | '/map' | '/register'
-  id: '__root__' | '/' | '/dashboard' | '/login' | '/map' | '/register'
+  to: '/' | '/dashboard' | '/login' | '/map' | '/municipal' | '/register'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/map'
+    | '/municipal'
+    | '/register'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,6 +92,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   MapRoute: typeof MapRoute
+  MunicipalRoute: typeof MunicipalRoute
   RegisterRoute: typeof RegisterRoute
 }
 
@@ -86,6 +103,13 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/municipal': {
+      id: '/municipal'
+      path: '/municipal'
+      fullPath: '/municipal'
+      preLoaderRoute: typeof MunicipalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/map': {
@@ -124,6 +148,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   MapRoute: MapRoute,
+  MunicipalRoute: MunicipalRoute,
   RegisterRoute: RegisterRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy import Column, Integer, String, Float, DateTime, func
 from .database import Base
 
 class User(Base):
@@ -62,3 +62,23 @@ class LegacyRule(Base):
     id = Column(Integer, primary_key=True, index=True)
     antecedents = Column(String(255), nullable=False, index=True)
     consequents = Column(String(100), nullable=False)
+
+
+class MunicipalRequest(Base):
+    __tablename__ = "municipal_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    decision = Column(String(20), nullable=False, index=True)
+    waste = Column(Integer, nullable=False)
+    delay = Column(Integer, nullable=False)
+    density = Column(Integer, nullable=False)
+    area = Column(Integer, nullable=False)
+    lat = Column(Float, nullable=False)
+    lon = Column(Float, nullable=False)
+    bin_lat = Column(Float, nullable=True)
+    bin_lon = Column(Float, nullable=True)
+    status = Column(String(30), nullable=False, default="PENDING", index=True)
+    priority = Column(String(20), nullable=False, default="MEDIUM", index=True)
+    notes = Column(String(255), nullable=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())

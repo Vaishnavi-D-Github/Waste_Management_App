@@ -15,7 +15,7 @@ function Index() {
           Smart Waste Routing
         </p>
         <h1 className="mt-5 text-3xl font-bold tracking-tight text-foreground md:text-5xl">
-          Waste Mangement, getting ready for the future
+          Waste Management, getting ready for the future
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
           Plan cleaner, greener collection workflows with data-driven decision support built for

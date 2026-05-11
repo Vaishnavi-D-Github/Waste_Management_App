@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
-from .routes import user, prediction
+from .routes import user, prediction, municipal
 
 Base.metadata.create_all(bind=engine)
 
@@ -29,3 +29,4 @@ app.add_middleware(
 
 app.include_router(user.router)
 app.include_router(prediction.router)
+app.include_router(municipal.router)
